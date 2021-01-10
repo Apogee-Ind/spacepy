@@ -170,3 +170,14 @@ class OrbitElements():
         v_pqw = np.array([v_pqw])
 
         return r_ijk, v_ijk, r_pqw, v_pqw
+
+def create_LEO(h_p=400.0, h_a=400.0, i=0.0, w=0.0, lan=0.0, nu=0.0):
+    Earth = Planet()
+    spacecraft = SpaceObject()
+    spacecraft.parent = Earth
+    a = (2.0*Earth.r + h_p + h_a)/2.0
+    e = 1 - (Earth.r + h_p)/a
+    oe_vec = np.array([a, e, i, w, lan, nu])
+
+    spacecraft.set_orbit(oe_vec, is_deg=True)
+    return spacecraft

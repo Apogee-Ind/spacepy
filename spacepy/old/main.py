@@ -4,7 +4,7 @@ from mpl_toolkits import mplot3d
 from scipy import integrate
 
 # planet physical and orbit data
-from .data.planetdata import planets_phys, planets_orb
+from ..data.planetdata import planets_phys, planets_orb
 
 # physical constants
 import spacepy.data.constants as const
@@ -261,11 +261,12 @@ class OrbitElements():
 
         return r_ijk, v_ijk, r_pqw, v_pqw
 
-def create_LEO(h_p=400.0, e=0.0, i=0.0, w=0.0, lan=0.0):
+def create_LEO(h_p=400.0, h_a=400.0, i=0.0, w=0.0, lan=0.0):
     Earth = Planet()
     spacecraft = SpaceObject()
     spacecraft.parent = Earth
-    a = (Earth.r + h_p)/(1 - e)
+    a = (2.0*Earth.r + h_p + h_a)/2.0
+    e = 1 - (Earth.r + h_p)/a
     oe_vec = np.array([a, e, i, w, lan, 0.0])
 
     spacecraft.set_orbit(oe_vec, is_deg=True)
