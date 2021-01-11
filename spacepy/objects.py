@@ -6,11 +6,12 @@ from mpl_toolkits import mplot3d
 # internal imports
 import spacepy.data.constants as const
 from .data.planetdata import planets_orb, planets_phys
-from .helpers import to_deg, to_rad, MA_to_nu, set_3daxes_equal
+from .helpers import to_deg, to_rad, MA_to_nu, set_3daxes_equal, unpack_geom
 
 # root space object class
 class SpaceObject():
 
+    bodytype = 'unknown'
     def __init__(self):
         # position, velocity, and acceleration in inertial frame fixed to parent body
         self.rvec = np.zeros((1,3))
@@ -34,10 +35,12 @@ class SpaceObject():
             self.v_pf = np.append(self.v_pf, v_pf_new, axis=0)
         else:
             raise AttributeError('Parent body is not defined.')
+        
 
 # derivative class for the Sun
 class Sol(SpaceObject):
 
+    bodytype = 'star'
     def __init__(self):
         super().__init__()
         self.name = 'Sol'
@@ -181,3 +184,25 @@ def create_LEO(h_p=400.0, h_a=400.0, i=0.0, w=0.0, lan=0.0, nu=0.0):
 
     spacecraft.set_orbit(oe_vec, is_deg=True)
     return spacecraft
+
+class SpaceCraft(SpaceObject):
+    bodytype = 'spacecraft'
+
+    def __init__(self, name, mass=1.0, shape='point', dims=(0.0)):
+        super().__init__()
+        self.name = name
+        # spacecraft components
+        self.parts = {'m': [], 'dims': [], 'shapes': [], 'V': [], 'A': []} # dictionary containing mass, dimensions, shape, volume, and area of each component
+        self.m = np.sum(self.parts['m'])
+        # add initial part
+        self.add_part(mass, shape, dims)
+
+    def add_part(self, mass, shape='sphere', dims=(1.0), name='generic_part'):
+        V, A = unpack_geom(self, dims, shape)
+        to_add = [mass, dims, shape, V, A]
+        for key, prop in zip(self.parts, to_add):
+            self.parts[key].append(prop)
+        self.m = np.sum(self.parts['m'])
+
+    def add_thruster(self, thrust, orientation=[]):
+        pass

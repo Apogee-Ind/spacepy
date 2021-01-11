@@ -31,3 +31,36 @@ def set_3daxes_equal(ax: plt.Axes):
     ax.set_xlim3d([origin[0] - radius, origin[0] + radius])
     ax.set_ylim3d([origin[1] - radius, origin[1] + radius])
     ax.set_zlim3d([origin[2] - radius, origin[2] + radius])
+
+def unpack_geom(dims, shape):
+    shape_dict = {
+        'point': {
+            'V': lambda dims: 0.0,
+            'A': lambda dims: 0.0
+        },
+        'sphere': {
+            'V': lambda dims: (4/3)*np.pi * dims[0]**3,
+            'A': lambda dims: 4*np.pi * dims[0]**2
+        },
+        'cylinder': {
+            'V': lambda dims: np.pi * dims[0]**2 * dims[1],
+            'A': lambda dims: 2*np.pi * dims[0] * (dims[0] + dims[1])
+        },
+        'cuboid': {
+            'V': lambda dims: dims[0] * dims[1] * dims[2],
+            'A': lambda dims: 2 * (dims[0]*dims[1] + dims[0]*dims[2] + dims[1]*dims[2])
+        },
+        'torus': {
+            'V': lambda dims: 2*np.pi**2 * dims[0] * dims[1]**2,
+            'A': lambda dims: 4*np.pi**2 * dims[0] * dims[1]
+        },
+        'cone': {
+            'V': lambda dims: (1/3)*np.pi * dims[0]**2 * dims[1],
+            'A': lambda dims: np.pi * dims[0] * (dims[0] + np.sqrt(dims[0]**2 + dims[1]**2))
+        }
+    }
+    V = shape_dict[shape]['V'](dims)
+    A = shape_dict[shape]['A'](dims)
+    return V, A
+
+        
