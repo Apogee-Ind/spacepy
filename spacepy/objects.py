@@ -7,6 +7,7 @@ from mpl_toolkits import mplot3d
 import spacepy.data.constants as const
 from .data.planetdata import planets_orb, planets_phys
 from .helpers import to_deg, to_rad, MA_to_nu, set_3daxes_equal, unpack_geom
+from .frames import R313
 
 # root space object class
 class SpaceObject():
@@ -173,6 +174,38 @@ class OrbitElements():
         v_pqw = np.array([v_pqw])
 
         return r_ijk, v_ijk, r_pqw, v_pqw
+    
+    def update_oe(self, r_ijk, v_ijk):
+        # magnitudes
+        r_mag = np.linalg.norm(r_ijk)
+        v_mag = np.linalg.norm(v_ijk)
+        # angular momentum vector (points normal to orbit plane)
+        h_vec = np.cross(r_ijk, v_ijk)
+        h_mag = np.linalg.norm(h_vec)
+        z = np.array([0, 0, 1])
+        n = np.cross(z, h_vec)
+        n_hat = n/np.linalg.norm(n)
+        # eccentricity vector (points toward periapsis)
+        e_vec = np.cross(v_ijk, h_vec)/self.gm - r_ijk/r_mag
+        # update orbit elements
+        # semi-major axis
+        self.a = -self.gm*r_mag / (r_mag*v_mag**2 - 2*self.gm) # vis-viva eqn
+        # eccentricity
+        self.e = np.linalg.norm(e_vec)
+        # inclination
+        self.i = np.arccos(np.dot(h_vec, z) / h_mag)
+        # argument of periapsis
+        self.w = np.arccos(np.dot(n_hat, e_vec) / (np.linalg.norm(n_hat)*self.e))
+        if e_vec[2] < 0.0:
+            self.w = -self.w
+        # longitude of ascending node
+        self.lan = np.arctan2(n_hat[1], n_hat[0])
+        # true anomaly
+        self.nu = np.arccos(np.dot(r_ijk, e_vec) / (r_mag*self.e))
+        if np.dot(r_ijk, v_ijk) < 0.0:
+            self.nu = -self.nu
+
+
 
 def create_LEO(h_p=400.0, h_a=400.0, i=0.0, w=0.0, lan=0.0, nu=0.0):
     Earth = Planet()

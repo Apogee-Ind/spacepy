@@ -260,6 +260,31 @@ class OrbitElements():
         v_pqw = np.array([v_pqw])
 
         return r_ijk, v_ijk, r_pqw, v_pqw
+    
+    def rv2oe(rv,mu):
+    # input vector must be of the form [rx, ry, rx, vx, vy, vz] in km and km/s
+        r_ijk = rv[0:3]
+        v_ijk = rv[3:6]
+        r = np.linalg.norm(r_ijk)
+        v = np.linalg.norm(v_ijk)
+        h_vec = np.cross(r_ijk,v_ijk)
+        z = np.array([0,0,1])
+        n_hat = np.cross(z,h_vec)/np.linalg.norm(np.cross(z,h_vec))
+        e_vec = np.cross(v_ijk,h_vec)/mu - r_ijk/r
+        oe = np.empty((6))
+        oe[0] = -mu*r/(r*v**2 - 2*mu)
+        oe[1] = np.linalg.norm(e_vec)
+        oe[2] = np.arccos(np.dot(h_vec,z)/np.linalg.norm(h_vec))
+        oe[4] = np.arctan2(n_hat[1],n_hat[0])
+        oe[5] = np.arccos(np.dot(r_ijk,e_vec)/(r*oe[1]))
+        if np.dot(r_ijk,v_ijk) < 0:
+            oe[5] = -oe[5]
+        if e_vec[2] > 0:
+            oe[3] = np.arccos(np.dot(n_hat, e_vec)/(np.linalg.norm(n_hat)*oe[1]))
+        else:
+            oe[3] = -np.arccos(np.dot(n_hat, e_vec)/(np.linalg.norm(n_hat)*oe[1]))
+        
+        return oe # km and radian
 
 def create_LEO(h_p=400.0, h_a=400.0, i=0.0, w=0.0, lan=0.0):
     Earth = Planet()
