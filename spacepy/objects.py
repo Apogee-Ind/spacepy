@@ -7,7 +7,7 @@ from mpl_toolkits import mplot3d
 import spacepy.data.constants as const
 from .data.planetdata import planets_orb, planets_phys
 from .helpers import to_deg, to_rad, MA_to_nu, set_3daxes_equal, unpack_geom
-from .frames import R313
+from .frames import pqw2ijk
 
 # root space object class
 class SpaceObject():
@@ -144,22 +144,6 @@ class OrbitElements():
         self.nu = oe_vec[5]
 
         self.gm = body.gm
-
-    def R313(self):
-        R_w = np.array([[np.cos(self.w),   -np.sin(self.w),    0],
-                        [np.sin(self.w),   np.cos(self.w),     0],
-                        [0,            0,              1]
-                        ])
-        R_i = np.array([[1,     0,          0         ],
-                        [0,    np.cos(self.i),  -np.sin(self.i)],
-                        [0,    np.sin(self.i),  np.cos(self.i) ]
-                        ])
-        R_lan = np.array([[np.cos(self.lan),     -np.sin(self.lan),   0],
-                        [np.sin(self.lan),     np.cos(self.lan),    0],
-                        [0,               0,              1]
-                        ])
-
-        return R_lan@R_i@R_w
     
     def to_rv(self):
         p = self.a*(1 - self.e**2)
@@ -168,8 +152,8 @@ class OrbitElements():
         r_pqw = np.array([r*np.cos(self.nu), r*np.sin(self.nu), 0])
         v_pqw = np.array([-np.sqrt(self.gm/p)*np.sin(self.nu), np.sqrt(self.gm/p)*(self.e + np.cos(self.nu)), 0])
 
-        r_ijk = np.array([self.R313()@r_pqw])
-        v_ijk = np.array([self.R313()@v_pqw])
+        r_ijk = np.array([pqw2ijk(r_pqw, self)])
+        v_ijk = np.array([pqw2ijk(v_pqw, self)])
         r_pqw = np.array([r_pqw])
         v_pqw = np.array([v_pqw])
 
@@ -183,6 +167,7 @@ class OrbitElements():
         h_vec = np.cross(r_ijk, v_ijk)
         h_mag = np.linalg.norm(h_vec)
         z = np.array([0, 0, 1])
+        # line of nodes (points in direction of ascending node)
         n = np.cross(z, h_vec)
         n_hat = n/np.linalg.norm(n)
         # eccentricity vector (points toward periapsis)
@@ -206,18 +191,6 @@ class OrbitElements():
             self.nu = -self.nu
 
 
-
-def create_LEO(h_p=400.0, h_a=400.0, i=0.0, w=0.0, lan=0.0, nu=0.0):
-    Earth = Planet()
-    spacecraft = SpaceObject()
-    spacecraft.parent = Earth
-    a = (2.0*Earth.r + h_p + h_a)/2.0
-    e = 1 - (Earth.r + h_p)/a
-    oe_vec = np.array([a, e, i, w, lan, nu])
-
-    spacecraft.set_orbit(oe_vec, is_deg=True)
-    return spacecraft
-
 class SpaceCraft(SpaceObject):
     bodytype = 'spacecraft'
 
@@ -229,13 +202,43 @@ class SpaceCraft(SpaceObject):
         self.m = np.sum(self.parts['m'])
         # add initial part
         self.add_part(mass, shape, dims)
+        self.events = {}
 
     def add_part(self, mass, shape='sphere', dims=(1.0), name='generic_part'):
-        V, A = unpack_geom(self, dims, shape)
+        V, A = unpack_geom(dims, shape)
         to_add = [mass, dims, shape, V, A]
         for key, prop in zip(self.parts, to_add):
             self.parts[key].append(prop)
         self.m = np.sum(self.parts['m'])
 
-    def add_thruster(self, thrust, orientation=[]):
-        pass
+    def add_thruster(self, thrust, Isp, orientation=np.array([0, 1, 0])):
+        """
+        Orientation: unit vector defining direction of thrust when spacecraft is 
+            pointed in the direction of the velocity vector (prograde), such that
+            the thruster unit vector is expressed in the NTW coordinate frame.
+        """
+        self.thruster = {'max_thrust': thrust, 'Isp': Isp, 'orientation': orientation}
+        self.m_fuel = 0.0
+
+    def add_fuel(self, m_fuel):
+        self.m_fuel = m_fuel
+        self.m = self.m + self.m_fuel
+
+    def place_in_orbit(self, around=Planet(), h_p=400.0, h_a=400.0, i=0.0, w=0.0, lan=0.0, nu=0.0):
+        self.parent = around
+        a = (2.0*self.parent.r + h_p + h_a)/2.0
+        e = 1 - (self.parent.r + h_p)/a
+        oe_vec = np.array([a, e, i, w, lan, nu])
+
+        self.set_orbit(oe_vec, is_deg=True)
+
+def create_LEO(h_p=400.0, h_a=400.0, i=0.0, w=0.0, lan=0.0, nu=0.0):
+    Earth = Planet()
+    spacecraft = SpaceObject()
+    spacecraft.parent = Earth
+    a = (2.0*Earth.r + h_p + h_a)/2.0
+    e = 1 - (Earth.r + h_p)/a
+    oe_vec = np.array([a, e, i, w, lan, nu])
+
+    spacecraft.set_orbit(oe_vec, is_deg=True)
+    return spacecraft

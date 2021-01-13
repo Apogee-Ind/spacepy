@@ -1,3 +1,4 @@
-from spacepy.tests import twobody_LEO
+import numpy as np
+from spacepy.tests import lowthrust
 
-twobody_LEO.main()
+lowthrust.main()
