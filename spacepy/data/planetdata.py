@@ -1,4 +1,5 @@
 import numpy as np
+import spiceypy as spice
 
 planets_phys = {'Earth':{
                     'gm':3.98600435136e5,
@@ -53,3 +54,11 @@ planets_orb = {'Earth':{
                     'ma':19.412
                     }
                 }
+
+def load():
+    META = 'spacepy/data/metakr.tm'
+    spice.furnsh(META)
+
+def unload():
+    META = 'spacepy/data/metakr.tm'
+    spice.unload(META)

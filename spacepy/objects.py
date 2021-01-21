@@ -125,6 +125,7 @@ class Planet(Sol):
         z = c*np.outer(np.ones_like(u), np.cos(v))
 
         self.ellipsoid_coords = np.array([x, y, z])
+    
 
 # class to contain orbit elements
 class OrbitElements():

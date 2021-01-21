@@ -148,6 +148,7 @@ def animate_twobody(sc: SpaceCraft):
             return ln
         
         fig_anim = animation.FuncAnimation(sc.plot, update, frames, init_func=init, interval=10, repeat_delay=1000)
+        fig_anim.save('plot.mp4')
         plt.show()
     else:
         raise AttributeError('Parent body is not defined.')
