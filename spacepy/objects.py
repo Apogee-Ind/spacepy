@@ -47,7 +47,6 @@ class Sol(SpaceObject):
         self.name = 'Sol'
         self.system = 'Sol'
         self.parent = None
-        self.type = 'star'
         self.gm = 1.3271244e11 # km^3 s^-2
         self.r = 695700 # km
         self.m = 1.9885e30 # kg
@@ -97,7 +96,6 @@ class Planet(Sol):
             raise TypeError
         else:
             self.name = name
-            self.type = 'major_planet'
             self.system = 'Sol'
             self.parent = Sol()
         if name in planets_phys:
@@ -243,3 +241,21 @@ def create_LEO(h_p=400.0, h_a=400.0, i=0.0, w=0.0, lan=0.0, nu=0.0):
 
     spacecraft.set_orbit(oe_vec, is_deg=True)
     return spacecraft
+
+class System:
+    bodytype = 'system'
+
+    def __init__(self, epoch, *bodies):
+        self.contents = {
+            'star':[],
+            'major_planet':[],
+            'minor_planet':[],
+            'moon':[],
+            'spacecraft':[]
+        }
+        for body in bodies:
+            self.contents[body.bodytype].append(body)
+        self.epoch = epoch
+    
+    def add_body(self, body: SpaceObject):
+        self.contents[body.name] = body
