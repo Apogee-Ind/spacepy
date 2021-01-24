@@ -26,11 +26,13 @@ https://github.com/AndrewAnnex/SpiceyPy
 # Current Features
 ## Physical Data
 Physical parameters for a number of bodies can be accessed via the `spacepy.objects.Sol`, `spacepy.objects.Planet`, `spacepy.objects.SmallBody`, and `spacepy.objects.Moon` classes. This data is taken from JPL and NASA. Currently, the following objects are supported:
+
 1. The Sun
 2. All 8 recognized major planets
 3. Earth's Moon
 4. Pluto
 5. The asteroids Ceres, Vesta, Pallas, Psyche, Lutetia, Kleopatra, and Eros
+
 Note that you will need to download the appropriate ephemeris files in order to use these bodies in solar system simulations. See the section on "Ephemeris Data" for more details.
 ## Numerical Propagation
 Spacecraft trajectories can be integrated using a wrapper for `scipy.integrate.solve_ivp()` with method `DOP853`, an 8th-order variable-step Runge-Kutta method. Currently, nonsphericity (J2 effect) and thrust perturbations can be simulated.
@@ -44,6 +46,7 @@ Spacepy is designed to operate using the following ephemeris data:
 `mar097.bsp` (ephemeris for the Martian system)
 
 ... will include Jovian, Saturnian, Uranian, and Neptunian system ephemerides later,
+
 ... as well as ephemerides for various asteroids which need to be generated via JPL HORIZONS.
 
 Place the SPK files in `spacepy/data/kernels/spk` before using spacepy.

@@ -28,10 +28,10 @@ def main():
     epoch_end = '2028 JAN 01 00:00:00'
     step = 2*86400
 
-    sys = System(epoch, Sun, Earth, Mars, Jupiter, Ceres, Mercury, Venus, Vesta, Pallas, Eros, Saturn, Neptune, Uranus)
+    sys = System(epoch, Sun, Earth, Venus, Mercury)
     #print(sys.contents)
-    sys._gen_ICRF_vectors(epoch_end, step)
-    sim.plot_system(sys, do_markers=False)
+    sys._gen_ssb_vectors(epoch_end, step)
+    sim.plot_system(sys, do_markers=True)
     
 
 if __name__ == "__main__":

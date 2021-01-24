@@ -6,7 +6,7 @@ from mpl_toolkits import mplot3d
 from matplotlib import animation
 
 # internal imports
-from .objects import SpaceObject, Sol, Planet, OrbitElements, SpaceCraft, System
+from .objects import SpaceObject, Sol, Planet, SmallBody, Moon, OrbitElements, SpaceCraft, System
 from .helpers import to_deg, to_rad, MA_to_nu, set_3daxes_equal
 from .frames import ntw2ijk
 import spacepy.data.constants as const
@@ -23,6 +23,31 @@ def _update_mass(t, x, thrust, thrust_spec, sc: SpaceCraft):
         sc.m_fuel = sc.m_fuel - dm
         sc.m = sc.m - dm
         return True
+
+def _thrust_accel(t, x: np.ndarray, sc: SpaceCraft, thrust_spec, do_mass_update):
+    throttle = thrust_spec[thrust_spec[:,0] <= t, 1][-1]
+    thrust_mag = throttle*sc.thruster['max_thrust']/1000 # convert to kN
+    xdd_thrust_ntw = (thrust_mag*sc.thruster['orientation'])/sc.m
+    xdd_thrust = ntw2ijk(xdd_thrust_ntw, sc.oe)
+    if do_mass_update:
+        do_mass_update = _update_mass(t, x, thrust_mag, thrust_spec, sc)
+
+    return xdd_thrust
+
+def _twobody_accel(t, x: np.ndarray, sc: SpaceCraft, j2):
+    xdd_twobody = (-sc.parent.gm*x[0:3])/r_mag**3
+    if (j2 & hasattr(sc.parent, 'j2')):
+        xdd_j2 = np.array([
+            -sc.parent.j2 * 1.5*(sc.parent.r/r_mag)**2 * (5*(x[2]/r_mag)**2 - 1),
+            -sc.parent.j2 * 1.5*(sc.parent.r/r_mag)**2 * (5*(x[2]/r_mag)**2 - 1),
+            sc.parent.j2 * 1.5*(sc.parent.r/r_mag)**3 * (3 - 5*(x[2]/r_mag)**2)
+        ])
+        xdd_j2 = xdd_twobody * xdd_j2
+    
+    return xdd_twobody + xdd_j2
+
+def _nbody_accel(t, x: np.ndarray, sc: SpaceCraft, sys: System):
+    pass   
 
 def rk8(sc: SpaceObject, tmax, thrust_spec=None, j2=False, drag=False, **integrator_options):
     if hasattr(sc, 'parent'):
@@ -125,30 +150,35 @@ def animate_twobody(sc: SpaceCraft):
         sc.plot = plt.figure()
         ax = sc.plot.add_subplot(111, projection='3d')
         ln, = ax.plot(sc.rvec[1,0], sc.rvec[1,1], sc.rvec[1,2], 'r-')
+        ln.set_label(sc.name + ' trajectory')
+        dot, = ax.plot(sc.rvec[1,0], sc.rvec[1,1], sc.rvec[1,2], 'o')
+        dot.set_label(sc.name)
         frames = np.arange(2, np.shape(sc.t)[0], step=1)
         xdata = []
         ydata = []
         zdata = []
 
         def init():
-            ax.plot_wireframe(x_planet, y_planet, z_planet, rcount=24, ccount=12)
+            wire = ax.plot_wireframe(x_planet, y_planet, z_planet, rcount=24, ccount=12)
+            wire.set_label(sc.parent.name)
             ax.set_box_aspect([1,1,1])
             set_3daxes_equal(ax)
             ax.set_xlabel('X, km')
             ax.set_ylabel('Y, km')
             ax.set_zlabel('Z, km')
             ax.set_title('Trajectory Plot, ' + sc.parent.name + '-Centered Inertial Frame')
-            plt.legend([sc.name, sc.parent.name])
+            plt.legend()
 
         def update(i):
             xdata.append(sc.rvec[i,0])
             ydata.append(sc.rvec[i,1])
             zdata.append(sc.rvec[i,2])
             ln.set_data_3d(xdata, ydata, zdata)
+            dot.set_data_3d(sc.rvec[i,0], sc.rvec[i,1], sc.rvec[i,2])
             return ln
         
         fig_anim = animation.FuncAnimation(sc.plot, update, frames, init_func=init, interval=10, repeat_delay=1000)
-        fig_anim.save('plot.mp4')
+        #fig_anim.save('plot.mp4')
         plt.show()
     else:
         raise AttributeError('Parent body is not defined.')

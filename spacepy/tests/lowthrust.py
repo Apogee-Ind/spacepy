@@ -8,7 +8,7 @@ from spacepy import simulate as sim
 
 def main():
     Earth = Planet()
-    sat = SpaceCraft('Sat01', 1000.0, shape='cuboid', dims=(2.0, 2.0, 2.0))
+    sat = SpaceCraft('Sat01', id=-1, mass=1000.0, shape='cuboid', dims=(2.0, 2.0, 2.0))
     
     sat.place_in_orbit(Earth, 1200.0, 1250.0, 51.6467, 207.309, 43.0535, 0.0)
     sat.add_thruster(500.0, 250, orientation=np.array([0, -1, 0]))
@@ -22,8 +22,8 @@ def main():
     print(f'Final spacecraft mass: {sat.m} kg')
     print(f'Initial velocity (magnitude): {np.linalg.norm(sat.vvec[1])} km/s')
     print(f'Final velocity (magnitute): {np.linalg.norm(sat.vvec[-1])} km/s')
-    #sim.animate_twobody(sat)
-    sim.plot_twobody(sat)
+    sim.animate_twobody(sat)
+    #sim.plot_twobody(sat)
     
 
 if __name__ == '__main__':
