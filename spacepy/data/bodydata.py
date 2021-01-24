@@ -1,7 +1,8 @@
 import numpy as np
 import spiceypy as spice
 
-planets_phys = {
+# 8 recognized planets
+planet_data = {
     'Mercury':{
         'id':199,
         #parameters from JPL solar system dynamics
@@ -158,6 +159,8 @@ planets_phys = {
         'j4':-33.4e-6
     }
 }
+
+# NAIF ID codes for planetary system barycenters
 planet_systems = {
     'Mercury':1,
     'Venus':2,
@@ -169,10 +172,12 @@ planet_systems = {
     'Neptune':8,
     'Pluto':9
 }
-moons_phys = {
+
+# natural satellites of planets
+moon_data = {
     'Moon':{
         'id':301,
-        'parent':'Earth',
+        'system':'Earth',
         'gm':4902.801,
         'r':1738.1,
         'rmean':1737.4,
@@ -189,7 +194,9 @@ moons_phys = {
         'f':0.0012
     }
 }
-minors_phys = {
+
+# dwarf planets, asteroids, and comets
+smallbody_data = {
     'Pluto':{
         'id':999,
         'gm':8.7e2,
@@ -266,23 +273,6 @@ minors_phys = {
 
 }
 
-planets_orb = {'Earth':{
-                    'a':149598023.0,
-                    'e':0.0167086,
-                    'i':0.0,
-                    'om':-11.26064,
-                    'w':114.20783,
-                    'ma':358.617
-                    },
-                'Mars':{
-                    'a':227939200.0,
-                    'e':0.0934,
-                    'i':1.85,
-                    'om':49.558,
-                    'w':86.502,
-                    'ma':19.412
-                    }
-                }
 
 def load():
     META = 'spacepy/data/metakr.tm'

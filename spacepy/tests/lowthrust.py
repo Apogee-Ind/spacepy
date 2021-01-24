@@ -3,7 +3,7 @@ import numpy as np
 
 # internal imports
 from spacepy.objects import SpaceCraft, Planet
-from spacepy.data.planetdata import planets_orb, planets_phys
+from spacepy.data.bodydata import planet_data
 from spacepy import simulate as sim
 
 def main():

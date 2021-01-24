@@ -43,7 +43,7 @@ Place the SPK files in `spacepy/data/kernels/spk` before using spacepy.
 
 # TODO
 ## Short-term
-1. Add attrubute under Planet class for the integer NAIF object code
+1. ~~Add attrubute under Planet class for the integer NAIF object code~~
 2. Add `spacepy.objects.System` class to handle creation and simulation of heliocentric and Earth-Moon systems
 3. Add wrappers for spiceypy time conversion functions 
 4. Add physical and ellipsoid data for the Moon
@@ -52,7 +52,7 @@ Place the SPK files in `spacepy/data/kernels/spk` before using spacepy.
 ## Mid-term
 1. Implement restricted three-body equations of motion
 2. Implement SOI boundary detection for patched-conic modeling
-3. Add data for asteroid 1 Ceres
+3. ~~Add data for asteroid 1 Ceres~~
 
 ## Long-term
 1. Add three-axis spacecraft attitude to EOM state vector along with perturbing torques

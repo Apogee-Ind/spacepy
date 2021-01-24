@@ -5,7 +5,7 @@ from mpl_toolkits import mplot3d
 
 # internal imports
 import spacepy.data.constants as const
-from .data.planetdata import planets_phys, planet_systems, minors_phys, moons_phys
+from .data.bodydata import planet_data, planet_systems, smallbody_data, moon_data
 from .helpers import to_deg, to_rad, MA_to_nu, set_3daxes_equal, unpack_geom
 from .frames import pqw2ijk
 
@@ -70,7 +70,7 @@ class Planet(Sol):
         name            dtype: str  | Must match one of: 'Mercury', 'Venus', 'Earth', 'Mars', 'Jupiter', 'Saturn', 'Uranus', or 'Neptune'. If not specified, defaults to 'Earth'.
         barycenter      dtype: bool | Specifies whether this planet should have the NAIF integer code corresponding to its system's barycenter.
 
-        Initial physical attributes are generated from values stored in spacepy.data.planetdata.planets_phys. This dictionary contains the following fields for all planets:
+        Initial physical attributes are generated from values stored in spacepy.data.bodydata.planet_data. This dictionary contains the following fields for all planets:
         id      dtype: int      | NAIF integer code for this body. Unit: dimensionless
         gm      dtype: float    | Gravitational parameter. Unit: km**3 / s**2
         r       dtype: float    | Equatorial radius. Unit: km
@@ -107,12 +107,12 @@ class Planet(Sol):
             self.system = 'Sol'
             self.parent = Sol()
 
-            if name in planets_phys:
-                for key in planets_phys[name]:
-                    setattr(self, key, planets_phys[name][key])
+            if name in planet_data:
+                for key in planet_data[name]:
+                    setattr(self, key, planet_data[name][key])
             else:
-                for key in planets_phys['Earth']:
-                    setattr(self, key, planets_phys['Earth'][key])
+                for key in planet_data['Earth']:
+                    setattr(self, key, planet_data['Earth'][key])
             if barycenter:
                 if name in planet_systems:
                     setattr(self, 'id', planet_systems[name])
@@ -140,7 +140,7 @@ class SmallBody(Sol):
     Args:
     name    dtype: str  | Must match one of: 'Pluto', 'Ceres', 'Vesta', 'Pallas', 'Psyche', 'Lutetia', 'Kleopatra', 'Eros'. Defaults to 'Ceres' if unspecified.
 
-    Initial physical attributes are generated from values stored in spacepy.data.planetdata.minors_phys. The following are defined for all small bodies:
+    Initial physical attributes are generated from values stored in spacepy.data.bodydata.smallbody_data. The following are defined for all small bodies:
     id      dtype: int      | NAIF integer code for this body.
     gm      dtype: float    | Gravitational parameter. Unit: km**3 / s**2
     r       dtype: float    | Equatorial radius. (Note: for asteroids, this value is the radius of an equivalent spherical body.) Unit: km
@@ -159,9 +159,9 @@ class SmallBody(Sol):
     rho     dtype: float    | Bulk density. Unit: kg / m**3  
     """
     bodytype = 'small_body'
-    
+
     def __init__(self, name='Ceres'):
-        super.__init__()
+        super().__init__()
         if type(name) != str:
             raise TypeError
         else:
@@ -169,12 +169,12 @@ class SmallBody(Sol):
             self.system = 'Sol'
             self.parent = Sol()
 
-            if name in minors_phys:
-                for key in minors_phys[name]:
-                    setattr(self, key, minors_phys[name][key])
+            if name in smallbody_data:
+                for key in smallbody_data[name]:
+                    setattr(self, key, smallbody_data[name][key])
             else:
-                for key in minors_phys['Ceres']:
-                    setattr(self, key, minors_phys['Ceres'][key])
+                for key in smallbody_data['Ceres']:
+                    setattr(self, key, smallbody_data['Ceres'][key])
 
 class Moon(Sol):
     """
@@ -183,7 +183,7 @@ class Moon(Sol):
     Args:
     name    dtype: str  | Must match one of: 'Moon'. Defaults to 'Moon' if not specified.
 
-    Initial physical attributes are generated from values stored in spacepy.data.planetdata.moons_phys. For Earth's Moon, the following parameters are defined:
+    Initial physical attributes are generated from values stored in spacepy.data.bodydata.moon_data. For Earth's Moon, the following parameters are defined:
     id      dtype: int      | NAIF integer code for this moon.
     parent  dtype: str      | Body around which this moon orbits.
     gm      dtype: float    | Gravitational parameter. Unit: km**3 / s**2
@@ -195,18 +195,18 @@ class Moon(Sol):
     bodytype = 'moon'
 
     def __init__(self, name='Moon'):
-        super.__init__()
+        super().__init__()
         assert (type(name) == str), 'Name must be a string.'
         self.name = name
-        self.system = parent
-        self.parent = Planet(parent)
 
-        if name in moons_phys:
-            for key in moons_phys[name]:
-                setattr(self, key, moons_phys[name][key])
+        if name in moon_data:
+            for key in moon_data[name]:
+                setattr(self, key, moon_data[name][key])
             else:
-                for key in moons_phys['Moon']:
-                    setattr(self, key, moons_phys['Moon'][key])
+                for key in moon_data['Moon']:
+                    setattr(self, key, moon_data['Moon'][key])
+        
+        self.parent = Planet(self.system)
 
 
 # class to contain orbit elements
