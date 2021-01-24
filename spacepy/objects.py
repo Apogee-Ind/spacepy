@@ -2,6 +2,7 @@
 import numpy as np
 from matplotlib import pyplot as plt
 from mpl_toolkits import mplot3d
+import spiceypy as spice
 
 # internal imports
 import spacepy.data.constants as const
@@ -356,7 +357,38 @@ class System:
         for body in bodies:
             self.contents[body.bodytype][body.id] = body
         self.epoch = epoch
+        self.et_start = spice.str2et(epoch)
     
     def add_body(self, body: SpaceObject):
         self.contents[body.bodytype][body.id] = body
 
+    def _gen_ICRF_vectors(self, stop, step, include_moons=True):
+        assert (10 in self.contents['star']), 'System must contain the Sun in order to use ICRF coordinates.'
+        self.epoch_end = stop
+        self.et_end = spice.str2et(stop)
+        self.step_time = step
+
+        t_iterable = np.arange(self.et_start, self.et_end, step)
+        for t in t_iterable:
+            state = spice.spkssb(10, t, 'J2000')
+            sun = self.contents['star'][10]
+            sun.rvec = np.append(sun.rvec, np.array([state[0:3]]), axis=0)
+            sun.vvec = np.append(sun.vvec, np.array([state[3:6]]), axis=0)
+            if self.contents['major_planet']:
+                for pid in self.contents['major_planet']:
+                    state = spice.spkssb(pid, t, 'J2000')
+                    planet = self.contents['major_planet'][pid]
+                    planet.rvec = np.append(planet.rvec, np.array([state[0:3]]), axis=0)
+                    planet.vvec = np.append(planet.vvec, np.array([state[3:6]]), axis=0)
+            if self.contents['small_body']:
+                for sbid in self.contents['small_body']:
+                    state = spice.spkssb(sbid, t, 'J2000')
+                    sbody = self.contents['small_body'][sbid]
+                    sbody.rvec = np.append(sbody.rvec, np.array([state[0:3]]), axis=0)
+                    sbody.vvec = np.append(sbody.vvec, np.array([state[3:6]]), axis=0)
+            if (include_moons & bool(self.contents['moon'])):
+                for mid in self.contents['moon']:
+                    state = spice.spkssb(mid, t, 'J2000')
+                    mbody = self.contents['moon'][mid]
+                    mbody.rvec = np.append(mbody.rvec, np.array([state[0:3]]), axis=0)
+                    mbody.vvec = np.append(mbody.vvec, np.array([state[3:6]]), axis=0)

@@ -6,7 +6,7 @@ from mpl_toolkits import mplot3d
 from matplotlib import animation
 
 # internal imports
-from .objects import SpaceObject, Sol, Planet, OrbitElements, SpaceCraft
+from .objects import SpaceObject, Sol, Planet, OrbitElements, SpaceCraft, System
 from .helpers import to_deg, to_rad, MA_to_nu, set_3daxes_equal
 from .frames import ntw2ijk
 import spacepy.data.constants as const
@@ -153,7 +153,33 @@ def animate_twobody(sc: SpaceCraft):
     else:
         raise AttributeError('Parent body is not defined.')
         
+def plot_system(sys: System, do_markers=True):
+    sys.plot = plt.figure()
+    ax = sys.plot.add_subplot(111, projection='3d')
 
+    for bodytype in sys.contents:
+        for bid, body in sys.contents[bodytype].items():
+            line, = ax.plot(body.rvec[2:,0], body.rvec[2:,1], body.rvec[2:,2])
+            line.set_label(body.name)
+            if do_markers:
+                ax.plot(body.rvec[1,0], body.rvec[1,1], body.rvec[1,2], 'ok')
+                ax.plot(body.rvec[-1,0], body.rvec[-1,1], body.rvec[-1,2], 'xk')
+
+            if bodytype == 'spacecraft':
+                for event in body.events:
+                    coords = body.events[event]['rvec']
+                    ax.scatter(coords[0], coords[1], coords[2], 'bx')
+                    ax.text(coords[0], coords[1], coords[2], event)
+
+    ax.set_box_aspect([1,1,1])
+    set_3daxes_equal(ax)
+    ax.set_xlabel('X, km')
+    ax.set_ylabel('Y, km')
+    ax.set_zlabel('Z, km')
+    plt.legend()
+    plt.suptitle('Trajectory Plot of System in heliocentric coordinate frame.')
+    plt.title(sys.epoch + ' to ' + sys.epoch_end)
+    plt.show()
 
 # class for gauss-jackson multi-step integrator
 class _GJ8:

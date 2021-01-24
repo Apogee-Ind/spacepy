@@ -2,6 +2,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from mpl_toolkits import mplot3d
 import spacepy.data.constants as const
+import spiceypy as spice
 
 def to_deg(theta):
     return theta*(180/np.pi)
@@ -63,4 +64,3 @@ def unpack_geom(dims, shape):
     A = shape_dict[shape]['A'](dims)
     return V, A
 
-        
