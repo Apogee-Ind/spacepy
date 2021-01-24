@@ -5,7 +5,7 @@ from mpl_toolkits import mplot3d
 
 # internal imports
 import spacepy.data.constants as const
-from .data.planetdata import planets_orb, planets_phys
+from .data.planetdata import planets_phys, planet_systems, minors_phys, moons_phys
 from .helpers import to_deg, to_rad, MA_to_nu, set_3daxes_equal, unpack_geom
 from .frames import pqw2ijk
 
@@ -45,6 +45,7 @@ class Sol(SpaceObject):
     def __init__(self):
         super().__init__()
         self.name = 'Sol'
+        self.id = 10
         self.system = 'Sol'
         self.parent = None
         self.gm = 1.3271244e11 # km^3 s^-2
@@ -66,31 +67,38 @@ class Planet(Sol):
     """
         Create a new Planet object.
         Args:
-        name    Type: string. Must match one of: 'Mercury', 'Venus', 'Earth', 'Mars', 'Jupiter', 'Saturn', 'Uranus', or 'Neptune'. If not specified, defaults to 'Earth'.
+        name            dtype: str  | Must match one of: 'Mercury', 'Venus', 'Earth', 'Mars', 'Jupiter', 'Saturn', 'Uranus', or 'Neptune'. If not specified, defaults to 'Earth'.
+        barycenter      dtype: bool | Specifies whether this planet should have the NAIF integer code corresponding to its system's barycenter.
 
-        Attributes:
-        gm      Gravitational Parameter. Units: km^3 * s^-2
-        r       Equatorial radius. Unit: km
-        rmean   Mean radius. Unit: km
-        m       Mass. Unit: kg
-        rho     Bulk density. Unit: kg * m^-3
-        sday    Sidereal rotation period. Unit: s
-        syr     Sidereal revolution period. Unit: yr (Earth year)
-        vesc    Escape velocity. Unit: km * s^-1
-        g       Equatorial surface gravity. Unit: m * s^-2
-        j2      J2 zonal harmonic term. Unit: dimensionless
-        f       Ellipsoid flattening term. Unit: dimensionless
-        p       Equatorial sea-level/datum atmospheric pressure. Unit: Pa
-        alb     Bond albedo. Unit: dimensionless
-        Tsurf   Surface temperature. Unit: K
-        Teff    Effective blackbody temperature. Unit: K
+        Initial physical attributes are generated from values stored in spacepy.data.planetdata.planets_phys. This dictionary contains the following fields for all planets:
+        id      dtype: int      | NAIF integer code for this body. Unit: dimensionless
+        gm      dtype: float    | Gravitational parameter. Unit: km**3 / s**2
+        r       dtype: float    | Equatorial radius. Unit: km
+        rmean   dtype: float    | Mean radius. Unit: km
+        m       dtype: float    | Mass. Unit: kg
+        rho     dtype: float    | Bulk density. Unit: kg / m**3
+        sday    dtype: float    | Sidereal rotation period. Unit: s
+        syr     dtype: float    | Sidereal revolution period. Unit: yr
+        mag     dtype: float    | V-band magnitude. Unit: dimensionless
+        alb_g   dtype: float    | Geometric albedo. Unit: dimensionless
+        g       dtype: float    | Equatorial surface gravity. Unit: m / s**2
+        vesc    dtype: float    | Escape velocity. Unit: km / s**2
+        j2      dtype: float    | 2nd zonal harmonic coefficient. Unit: dimensionless
 
-        Note: Not all bodies have data for all attributes. In this case, the attribute is not defined.
-        References: JPL Planetary and Lunar Ephemerides DE430 & DE431
+        In addition, all inner planets have the following physical parameters defined:
+        f       dtype: float    | Flattening. Unit: dimensionless
+        p       dtype: float    | Surface atmospheric pressure. Unit: Pa
+        Tsurf   dtype: float    | Surface temperature. Unit: K
+        Tbb     dtype: float    | Blackbody temperature. Unit: K
+        alb_b   dtype: float    | Bond albedo. Unit: dimensionless
+
+        In addition, all outer planets have the following physical parameters defined:
+        j4      dtype: float    | 4th zonal harmonic coefficient. Unit: dimensionless
+
     """
     bodytype = "major_planet"
 
-    def __init__(self, name="Earth"):
+    def __init__(self, name='Earth', barycenter=False):
         super().__init__()
         if type(name) != str:
             raise TypeError
@@ -98,15 +106,16 @@ class Planet(Sol):
             self.name = name
             self.system = 'Sol'
             self.parent = Sol()
-        if name in planets_phys:
-            for key in planets_phys[name]:
-                setattr(self, key, planets_phys[name][key])
-        else:
-            for key in planets_phys['Earth']:
-                setattr(self, key, planets_phys['Earth'][key])
-        if name in planets_orb:
-            oe_vec = np.array(list(planets_orb[name].values()))
-            self.oe = OrbitElements(oe_vec, self.parent, is_deg=True, contains_MA=True)
+
+            if name in planets_phys:
+                for key in planets_phys[name]:
+                    setattr(self, key, planets_phys[name][key])
+            else:
+                for key in planets_phys['Earth']:
+                    setattr(self, key, planets_phys['Earth'][key])
+            if barycenter:
+                if name in planet_systems:
+                    setattr(self, 'id', planet_systems[name])
 
     def gen_ellipsoid(self):
         # equatorial radius a, polar radius c
@@ -123,7 +132,82 @@ class Planet(Sol):
         z = c*np.outer(np.ones_like(u), np.cos(v))
 
         self.ellipsoid_coords = np.array([x, y, z])
+
+class SmallBody(Sol):
+    """
+    Create a new SmallBody object. These objects include dwarf planets, asteroids, and comets.
+
+    Args:
+    name    dtype: str  | Must match one of: 'Pluto', 'Ceres', 'Vesta', 'Pallas', 'Psyche', 'Lutetia', 'Kleopatra', 'Eros'. Defaults to 'Ceres' if unspecified.
+
+    Initial physical attributes are generated from values stored in spacepy.data.planetdata.minors_phys. The following are defined for all small bodies:
+    id      dtype: int      | NAIF integer code for this body.
+    gm      dtype: float    | Gravitational parameter. Unit: km**3 / s**2
+    r       dtype: float    | Equatorial radius. (Note: for asteroids, this value is the radius of an equivalent spherical body.) Unit: km
+    sday    dtype: float    | Sidereal rotaion period. Unit: s
+    alb_g   dtype: float    | Geometric albedo. Unit: dimensionless
+
+    In addition, the dwarf planet Pluto has the following physical parameters defined:
+    rmean   dtype: float    | Mean radius. Unit: km
+    rho     dtype: float    | Bulk density. Unit: kg / m**3
+    mag     dtype: float    | V-band magnitude: Unit: dimensionless
+    g       dtype: float    | Equatorial surface gravity. Unit: m / s**2
+    vesc    dtype: flaot    | Escape velocity. Unit: km / s
+
+    In addition, some asteroids have one or more of the following physical parameters defined:
+    extent  dtype: ndarray  | Dimensions of an equivalent triaxial ellipsoid. Unit: km
+    rho     dtype: float    | Bulk density. Unit: kg / m**3  
+    """
+    bodytype = 'small_body'
     
+    def __init__(self, name='Ceres'):
+        super.__init__()
+        if type(name) != str:
+            raise TypeError
+        else:
+            self.name = name
+            self.system = 'Sol'
+            self.parent = Sol()
+
+            if name in minors_phys:
+                for key in minors_phys[name]:
+                    setattr(self, key, minors_phys[name][key])
+            else:
+                for key in minors_phys['Ceres']:
+                    setattr(self, key, minors_phys['Ceres'][key])
+
+class Moon(Sol):
+    """
+    Create a new Moon object. Moons are natural satellites of planets or minor bodies.
+
+    Args:
+    name    dtype: str  | Must match one of: 'Moon'. Defaults to 'Moon' if not specified.
+
+    Initial physical attributes are generated from values stored in spacepy.data.planetdata.moons_phys. For Earth's Moon, the following parameters are defined:
+    id      dtype: int      | NAIF integer code for this moon.
+    parent  dtype: str      | Body around which this moon orbits.
+    gm      dtype: float    | Gravitational parameter. Unit: km**3 / s**2
+    r       dtype: float    | Equatorial radius. Unit: km
+    rmean   dtype: float    | Mean radius. Unit: km
+    rho     dtype: float    | Bulk density. Unit: kg / m**3
+    sday    dtype: float    | Sidereal rotation period. Unit: s
+    """
+    bodytype = 'moon'
+
+    def __init__(self, name='Moon'):
+        super.__init__()
+        assert (type(name) == str), 'Name must be a string.'
+        self.name = name
+        self.system = parent
+        self.parent = Planet(parent)
+
+        if name in moons_phys:
+            for key in moons_phys[name]:
+                setattr(self, key, moons_phys[name][key])
+            else:
+                for key in moons_phys['Moon']:
+                    setattr(self, key, moons_phys['Moon'][key])
+
 
 # class to contain orbit elements
 class OrbitElements():
@@ -191,11 +275,27 @@ class OrbitElements():
 
 
 class SpaceCraft(SpaceObject):
+    """
+    Create a new SpaceCraft object.
+    Args:
+    name    dtype: str      | Name for this spacecraft. Can be whatever you like.
+    id      dtype: int      | User-defined id value for this spacecraft. Can be anything, but conventionally is a negative integer. Defaults to -1 if not specified.
+    mass    dtype: float    | Initial spacecraft dry mass. Defaults to 1.0 if not specified. Unit: kg
+    shape   dtype: str      | Must be one of: 'point', 'sphere', 'cylinder', 'cuboid', 'torus', or 'cone'. Defaults to 'point' if not specified.
+    dims    dtype: tuple    | Contains critical dimensions as required by spacepy.helpers.unpack_geom(). Defaults to (0.0) if not specified. Unit: m
+
+    Attributes:
+    bodytype    dtype: str  | Has the value 'spacecraft' for all SpaceCraft objects.
+    parts       dtype: dict | Dictionary with keys: 'm', 'dims', 'shapes', 'V', 'A'. Each field contains a list of values for each part, and is updated as parts are added.
+    m           dtype: float| Total mass of spacecraft, including fuel if fuel is added. Updates dynamically during simulation.
+    events      dtype: dict | Contains events generated by the integrator or other user-defined processes. Events are timestamped and include state vector information.
+    """
     bodytype = 'spacecraft'
 
-    def __init__(self, name, mass=1.0, shape='point', dims=(0.0)):
+    def __init__(self, name, id=-1, mass=1.0, shape='point', dims=(0.0)):
         super().__init__()
         self.name = name
+        self.id = id
         # spacecraft components
         self.parts = {'m': [], 'dims': [], 'shapes': [], 'V': [], 'A': []} # dictionary containing mass, dimensions, shape, volume, and area of each component
         self.m = np.sum(self.parts['m'])
@@ -247,15 +347,16 @@ class System:
 
     def __init__(self, epoch, *bodies):
         self.contents = {
-            'star':[],
-            'major_planet':[],
-            'minor_planet':[],
-            'moon':[],
-            'spacecraft':[]
+            'star':{},
+            'major_planet':{},
+            'small_body':{},
+            'moon':{},
+            'spacecraft':{}
         }
         for body in bodies:
-            self.contents[body.bodytype].append(body)
+            self.contents[body.bodytype][body.id] = body
         self.epoch = epoch
     
     def add_body(self, body: SpaceObject):
-        self.contents[body.name] = body
+        self.contents[body.bodytype][body.id] = body
+

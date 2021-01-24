@@ -15,7 +15,7 @@ PATH_SYMBOLS = (
 KERNELS_TO_LOAD = (
     '$SPK/de440.bsp',
     '$SPK/mar097.bsp',
-    '$SPK/wld9188.15'
+    '$SPK/wld9188.15',
     '$LSK/naif0012.tls.pc'
 )
 

@@ -78,7 +78,7 @@ def rk8(sc: SpaceObject, tmax, thrust_spec=None, j2=False, drag=False, **integra
             del xdd_perturbing
         
         t_span = (sc.t[-1], tmax)
-        output = integrate.solve_ivp(_get_rhs, t_span, x0, method='DOP853', args=(sc, thrust_spec, j2, drag, do_mass_update), rtol=1e-6, atol=1e-6, max_step=120.0)
+        output = integrate.solve_ivp(_get_rhs, t_span, x0, method='DOP853', args=(sc, thrust_spec, j2, drag, do_mass_update), **integrator_options)
         sc.t = np.append(sc.t, output.t[1:])
         sc.rvec = np.append(sc.rvec, output.y[0:3,1:].T, axis=0)
         sc.vvec = np.append(sc.vvec, output.y[3:,1:].T, axis=0)
