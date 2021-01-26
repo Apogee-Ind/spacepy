@@ -5,9 +5,25 @@ import spacepy.data.constants as const
 import spiceypy as spice
 
 def to_deg(theta):
+    """
+    Convert an angle or array of angles from radians to degrees.
+
+    Args:
+    theta   dtype: float, ndarray   | Angle or ndarray of angles to convert. Units: rad
+
+    Returns an angle of the same dtype as input, in .
+    """
     return theta*(180/np.pi)
 
 def to_rad(theta):
+    """
+    Convert an angle or array of angles from degrees to radians.
+
+    Args:
+    theta   dtype: float, ndarray   | Angle or ndarray of angles to convert. Units: deg
+
+    Returns an angle of the same dtype as input, in radians.
+    """
     return theta*(np.pi/180)
 
 def MA_to_nu(ma, e, order=3, is_deg=False):
@@ -34,6 +50,26 @@ def set_3daxes_equal(ax: plt.Axes):
     ax.set_zlim3d([origin[2] - radius, origin[2] + radius])
 
 def unpack_geom(dims, shape):
+    """
+    Calculate the volume and surface area of a three-dimensional solid of given dimensions.
+
+    Args:
+    dims    dtype: tuple    | Tuple of critical dimensions. The number of required dimensions varies depending on the shape, see below. Units: m
+    shape   dtype: str      | Must match one of: 'point', 'sphere', 'cylinder', 'cuboid', 'torus', 'cone'. Note that all shapes are assumed solid.
+
+    Returns:
+    V   dtype: float    | Volume of 3D solid. Units: m**3
+    A   dtype: float    | Surface area of 3D solid. Units: m**2
+
+    Explanation of shapes/dims:
+    'point': dims may be empty, None, or contain any values. The returned volume and surface area are always 0.0
+    'sphere': dims(0) is the radius
+    'cylinder': dims(0) is the radius, dims(1) is the height
+    'cuboid': dims(0), dims(1), dims(2) are the length, width, and height of the cuboid
+    'torus': dims(0) is the major radius, dims(1) is the minor radius
+    'cone': dims(0) is the radius, dims(1) is the height 
+    Extra values in dims are ignored. 
+    """
     shape_dict = {
         'point': {
             'V': lambda dims: 0.0,
