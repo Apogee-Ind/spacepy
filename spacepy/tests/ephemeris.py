@@ -4,7 +4,7 @@ import numpy as np
 
 # internal imports
 from spacepy.objects import Planet, Sol, System, SpaceCraft, SmallBody, Moon
-import spacepy.data.bodydata as planetdata
+import spacepy.data.bodydata as bodydata
 import spacepy.simulate as sim
 
 def main():
@@ -23,7 +23,7 @@ def main():
     Eros = SmallBody('Eros')
     #Psyche = SmallBody('Psyche')
 
-    planetdata.load()
+    bodydata.load()
     epoch = '2045 DEC 31 00:00:00'
     epoch_end = '2047 DEC 31 00:00:00'
     step = 2*86400

@@ -132,5 +132,4 @@ dmypy.json
 .vscode/
 
 # kernel files
-spk/
 *.bsp
