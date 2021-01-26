@@ -1,6 +1,7 @@
 # scientific library imports
 import numpy as np
 from scipy import integrate
+import matplotlib
 from matplotlib import pyplot as plt
 from mpl_toolkits import mplot3d
 from matplotlib import animation
@@ -183,17 +184,24 @@ def animate_twobody(sc: SpaceCraft):
     else:
         raise AttributeError('Parent body is not defined.')
         
-def plot_system(sys: System, do_markers=True):
+def plot_system(sys: System, obs_id, frame, do_markers=True):
     sys.plot = plt.figure()
     ax = sys.plot.add_subplot(111, projection='3d')
 
-    for bodytype in sys.contents:
-        for bid, body in sys.contents[bodytype].items():
-            line, = ax.plot(body.rvec[2:,0], body.rvec[2:,1], body.rvec[2:,2])
-            line.set_label(body.name)
-            if do_markers:
-                ax.plot(body.rvec[1,0], body.rvec[1,1], body.rvec[1,2], 'ok')
-                ax.plot(body.rvec[-1,0], body.rvec[-1,1], body.rvec[-1,2], 'xk')
+    for bodytype, bodies in sys.contents.items():
+        for bid, body in bodies.items():
+            try:
+                x = body.state[obs_id]['state']
+                if body.name == 'Sol':
+                    line, = ax.plot(x[1:,0], x[1:,1], x[1:,2], 'o')
+                else:
+                    line, = ax.plot(x[1:,0], x[1:,1], x[1:,2], '--')
+                line.set_label(body.name)
+                if do_markers & (body.name != 'Sol'):
+                    ax.plot(x[1,0], x[1,1], x[1,2], 'ow')
+                    ax.plot(x[-1,0], x[-1,1], x[-1,2], 'xw')
+            except KeyError:
+                print(f'Body {body.name} does not have state vector data relative to body with ID {obs_id}.')
 
             if bodytype == 'spacecraft':
                 for event in body.events:
@@ -203,12 +211,18 @@ def plot_system(sys: System, do_markers=True):
 
     ax.set_box_aspect([1,1,1])
     set_3daxes_equal(ax)
-    ax.set_xlabel('X, km')
-    ax.set_ylabel('Y, km')
-    ax.set_zlabel('Z, km')
+    ax.set_xlabel('X, km', color='c')
+    ax.set_ylabel('Y, km', color='c')
+    ax.set_zlabel('Z, km', color='c')
+    ax.tick_params(axis='both', color='w', labelcolor='c')
+    ax.set_facecolor('black')
+    ax.xaxis.pane.fill = False
+    ax.yaxis.pane.fill = False
+    ax.zaxis.pane.fill = False
+    
     plt.legend()
-    plt.suptitle('Trajectory Plot of System in heliocentric coordinate frame.')
-    plt.title(sys.epoch + ' to ' + sys.epoch_end)
+    plt.suptitle(f'Trajectory Plot of System, {frame} frame, relative to body ID {obs_id}', color='k')
+    plt.title(f'{sys.epoch} to {sys.epoch_end}', color='k')
     plt.show()
 
 # class for gauss-jackson multi-step integrator

@@ -380,6 +380,13 @@ class System:
     bodytype = 'system'
 
     def __init__(self, epoch, *bodies):
+        """
+        Create a new System object.
+
+        Args:
+        epoch       | dtype: str                            | Start epoch, formatted as 'YYYY MMM DD HH:MM:SS'
+        *bodies     | dtype: spacepy.objects.SpaceObject    | Bodies to include in the simulation. Must be an instance of subclasses Sol, Planet, Moon, SmallBody, or SpaceCraft
+        """
         self.contents = {
             'star':{},
             'major_planet':{},
@@ -395,25 +402,34 @@ class System:
     def add_body(self, body: SpaceObject):
         self.contents[body.bodytype][body.id] = body
 
+    def _add_state(self, obs_id, frame, epoch, step):
+        state_keys = ('epoch', 'step', 'frame', 'state', 't')
+        state_vals = (epoch, step, frame, np.zeros((1,6)), np.zeros(1))
+        
+        for bodytype, bodies in self.contents.items():
+            for bid, body in bodies.items():
+                body.state[obs_id] = {k:v for k,v in zip(state_keys, state_vals)}
+
     def _gen_ssb_vectors(self, stop, step, include_moons=True, frame='ECLIPJ2000'):
+        """
+        Generate state vectors for all bodies in System, relative to the solar system barycenter and between the defined times.
+
+        Args:
+        stop            dtype: str      | Simulation stop time, formatted as 'YYYY MMM DD HH:MM:SS'
+        step            dtype: float    | Desired interval between subsequent values in the state vector, in seconds  
+        include_moons   dtype: bool     | Whether to include moons contained in System in the simulation. Defaults to True if not specified.
+        frame           dtype: str      | Reference frame in which to express output state vectors. Defaults to 'ECLIPJ2000' if not specified.
+        """
         assert (10 in self.contents['star']), 'System must contain the Sun in order to use coordinates centered on the Solar System Barycenter.'
         self.epoch_end = stop
         self.et_end = spice.str2et(stop)
         self.step_time = step
 
+        self._add_state(0, frame, self.epoch, step)
+
         t_iterable = np.arange(self.et_start, self.et_end, step)
-        for t in t_iterable:
-            sun = self.contents['star'][10]
-            append_ssb_state(sun, t, frame)
-            if self.contents['major_planet']:
-                for pid in self.contents['major_planet']:
-                    planet = self.contents['major_planet'][pid]
-                    append_ssb_state(planet, t, frame)
-            if self.contents['small_body']:
-                for sbid in self.contents['small_body']:
-                    sbody = self.contents['small_body'][sbid]
-                    append_ssb_state(sbody, t, frame)
-            if (include_moons & bool(self.contents['moon'])):
-                for mid in self.contents['moon']:
-                    mbody = self.contents['moon'][mid]
-                    append_ssb_state(mbody, t, frame)
+        
+        for bodytype, bodies in self.contents.items():
+            if bodies:
+                for bid, body in bodies.items():
+                    append_ssb_state(body, t_iterable, frame)

@@ -24,14 +24,17 @@ def main():
     #Psyche = SmallBody('Psyche')
 
     planetdata.load()
-    epoch = '2021 JAN 01 00:00:00'
-    epoch_end = '2028 JAN 01 00:00:00'
+    epoch = '2045 DEC 31 00:00:00'
+    epoch_end = '2047 DEC 31 00:00:00'
     step = 2*86400
 
-    sys = System(epoch, Sun, Earth, Venus, Mercury)
+    sys = System(epoch, Sun, Earth, Mars, Ceres)
     #print(sys.contents)
     sys._gen_ssb_vectors(epoch_end, step)
-    sim.plot_system(sys, do_markers=True)
+    #print(np.shape(sys.contents['major_planet'][3].state[0]['state']))
+    #print(np.shape(sys.contents['star'][10].state[0]['state']))
+    sim.plot_system(sys, 0, 'ECLIPJ2000', do_markers=True)
+    #print(sys.nt)
     
 
 if __name__ == "__main__":
