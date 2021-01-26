@@ -44,10 +44,15 @@ Spacepy requires the following ephemeris files:
 `de440.bsp` (general-purpose solar system ephemeris, contains data for the barycenters of all planets, the Sun, Earth, and the Moon)
 
 In order to use bodies other than the barycenters of the 8 planets, the Earth, the Moon, and the Sun, you will need additional ephemerides:
+
 `mar097.bsp` (ephemeris for the Martian system)
+
 `jup310.bsp` (Jovian system)
+
 `sat427.bsp` (Saturnian system)
+
 `ura111.bsp` (Uranian system)
+
 `nep095.bsp` (Neptunian system)
 
 I have included, for convenience, an ephemeris file which contains data for asteroids Ceres, Vesta, Pallas, and Eros. This ephemeris file, along with the others listed above, are required by a metakernel file which spacepy will attempt to load using the function `spacepy.data.bodydata.load()` which in turn calls `spiceypy.furnsh()`. If you do not wish to download the extra ephemeris files (other than the general-purpose), you will need to remove the filenames from `spacepy.data.metakr.tm` before calling `spacepy.data.bodydata.load()`.
