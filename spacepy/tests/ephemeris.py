@@ -24,8 +24,8 @@ def main():
     #Psyche = SmallBody('Psyche')
 
     bodydata.load()
-    epoch = '2045 DEC 31 00:00:00'
-    epoch_end = '2047 DEC 31 00:00:00'
+    epoch = '2044 AUG 17 00:00:00'
+    epoch_end = '2045 MAY 14 00:00:00'
     step = 2*86400
 
     sys = System(epoch, Sun, Earth, Mars, Ceres)

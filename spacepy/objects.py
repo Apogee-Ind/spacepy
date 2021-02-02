@@ -376,6 +376,11 @@ class SpaceCraft(SpaceObject):
         self.thruster = {'max_thrust': thrust, 'Isp': Isp, 'orientation': orientation}
         self.m_fuel = 0.0
 
+    def get_max_dV(self):
+        assert hasattr(self, 'thruster'), 'SpaceCraft instance must have a thruster to calculate maximum delta-V.'
+        self.dV = self.thruster['Isp'] * const.g_0 * np.log(self.m/(self.m - self.m_fuel))
+        return self.dV
+
     def add_fuel(self, m_fuel):
         """
         Add fuel to a SpaceCraft instance.
@@ -389,6 +394,7 @@ class SpaceCraft(SpaceObject):
         """
         self.m_fuel = m_fuel
         self.m = self.m + self.m_fuel
+        self.get_max_dV()
 
     def place_in_orbit(self, around=Planet(), h_p=400.0, h_a=400.0, i=0.0, w=0.0, lan=0.0, nu=0.0):
         self.parent = around
@@ -397,6 +403,7 @@ class SpaceCraft(SpaceObject):
         oe_vec = np.array([a, e, i, w, lan, nu])
 
         self.set_orbit(oe_vec, is_deg=True)
+    
 
 def create_LEO(h_p=400.0, h_a=401.0, i=0.0, w=0.0, lan=0.0, nu=0.0):
     """
@@ -424,13 +431,14 @@ def create_LEO(h_p=400.0, h_a=401.0, i=0.0, w=0.0, lan=0.0, nu=0.0):
     spacecraft.set_orbit(oe_vec, is_deg=True)
     return spacecraft
 
+
 from .wrappers import append_ssb_state
 class System:
     bodytype = 'system'
 
     def __init__(self, epoch, *bodies: SpaceObject):
         """
-        Create a new System object.
+        Create a new System instance.
 
         Args:
         epoch       | dtype: str                            | Start epoch, formatted as 'YYYY MMM DD HH:MM:SS'

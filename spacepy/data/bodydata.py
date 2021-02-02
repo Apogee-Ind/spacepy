@@ -144,7 +144,7 @@ planet_data = {
     'Neptune':{
         'id':899,
         #parameters from JPL solar system dynamics
-        'gm':6835100e6,
+        'gm':6.835100e6,
         'r':24764,
         'rmean':24622,
         'm':1.024126e26,
@@ -178,7 +178,7 @@ moon_data = {
     'Moon':{
         'id':301,
         'system':'Earth',
-        'gm':4902.801,
+        'gm':4.902801e3,
         'r':1738.1,
         'rmean':1737.4,
         'm':7.346e22,

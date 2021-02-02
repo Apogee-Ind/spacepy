@@ -13,7 +13,7 @@ To my knowledge, no mainstream package for spacecraft simulation is present in c
 3. Analysis of spacecraft subsystems including electrical, propulsion, thermal, and attitude control over a given trajectory.
 
 # Installation and Use
-I have not yet implemented the `setup.py` file for spacepy. Spacepy is designed to work inside an Anaconda environment, as it requires many of the scientific packages contained including `numpy`, `scipy`, and `matplotlib`. In addition, I am using the latest available versions of these packages during development. Spacepy also requires the package `spiceypy`, which can be installed on conda as follows:
+I have not yet implemented the `setup.py` file for spacepy. Spacepy is designed to work inside an Anaconda environment, as it requires many of the scientific packages contained including `numpy`, `scipy`, `matplotlib`, and `numba`. In addition, I am using the latest available versions of these packages during development. Spacepy also requires the package `spiceypy`, which can be installed on conda as follows:
 
 `conda config --add conda-forge`
 
@@ -25,7 +25,7 @@ https://github.com/AndrewAnnex/SpiceyPy
 
 # Current Features
 ## Physical Data
-Physical parameters for a number of bodies can be accessed via the `spacepy.objects.Sol`, `spacepy.objects.Planet`, `spacepy.objects.SmallBody`, and `spacepy.objects.Moon` classes. This data is taken from JPL and NASA. Currently, the following objects are supported:
+Physical parameters for a number of bodies can be accessed via the `spacepy.objects.Sol`, `spacepy.objects.Planet`, `spacepy.objects.SmallBody`, and `spacepy.objects.Moon` classes. This data is taken from JPL and NASA, and for all bodies includes the gravitational parameter and radius. Some objects have more data, including flattening/zonal harmonics, atmospheric pressure, surface gravity and escape velocity, blackbody temperature, albedo, and more. See the docstring for each body's class for a full list. Currently, the following objects are supported:
 
 1. The Sun
 2. All 8 recognized major planets
@@ -36,6 +36,8 @@ Physical parameters for a number of bodies can be accessed via the `spacepy.obje
 Note that you will need to download the appropriate ephemeris files in order to use these bodies in solar system simulations. See the section on "Ephemeris Data" for more details.
 ## Numerical Propagation
 Spacecraft trajectories can be integrated using a wrapper for `scipy.integrate.solve_ivp()` with method `DOP853`, an 8th-order variable-step Runge-Kutta method. Currently, nonsphericity (J2 effect) and thrust perturbations can be simulated.
+
+A Kepler orbit solver using f and g functions may be implemented later. Spacepy currently has a class for using classical orbit elements, but this will likely change to a more robust implementation in future.
 
 ## Ephemeris Data
 Using integration with spiceypy, spacepy supports simulation of all solar system bodies, provided necessary SPK kernels are installed. These files tend to be quite large, so are not included in this repository. The required SPK kernels can be found on the NAIF website here: https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/
@@ -59,20 +61,13 @@ I have included, for convenience, an ephemeris file which contains data for aste
 
 Place the SPK files in `spacepy/data/kernels/spk` before using spacepy. 
 
-# TODO
-## Short-term
-1. ~~Add attrubute under Planet class for the integer NAIF object code~~
-2. Add `spacepy.objects.System` class to handle creation and simulation of heliocentric and Earth-Moon systems
-3. Add wrappers for spiceypy time conversion functions 
-4. Add physical and ellipsoid data for the Moon
-5. Document existing functions and add import statements in package `__init.py__`
+# Coming Soon
 
-## Mid-term
-1. Implement restricted three-body equations of motion
-2. Implement SOI boundary detection for patched-conic modeling
-3. ~~Add data for asteroid 1 Ceres~~
+Here are some features that I aim to implement at some point, depending on how much time I have and when in particular I need their functionality:
 
-## Long-term
-1. Add three-axis spacecraft attitude to EOM state vector along with perturbing torques
-2. Add attitude control law simulation
-3. Add thermal and electrical subsystem simulation
+1. Lambert problem solver for elliptic and potentially hyperbolic orbits (will likely use an algorithm from Vallado)
+2. Using the above, a "porkchop" plot generator to analyze ballistic transfers between any planet or asteroid for which you have ephemerides
+3. Also using the Lambert solver: a patched-conic trajectory solver, with potential use of an n-body integrator near SOI boundaries or other points
+4. A `spacepy.objects.SpacecraftPart` class for creating thrusters, fuel tanks, solar panels, radiators, and more in a flexible way
+5. Module for electrical subsystem analysis, with functions for solar panel and battery sizing based on cell specifications and power requirements
+6. Module for thermal subsystem analysis, with functions for heat balancing, solar/albedo heating, and radiator sizing

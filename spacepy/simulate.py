@@ -195,7 +195,7 @@ def plot_system(sys: System, obs_id, frame, do_markers=True):
                 if body.name == 'Sol':
                     line, = ax.plot(x[1:,0], x[1:,1], x[1:,2], 'o')
                 else:
-                    line, = ax.plot(x[1:,0], x[1:,1], x[1:,2], '--')
+                    line, = ax.plot(x[1:,0], x[1:,1], x[1:,2], '-')
                 line.set_label(body.name)
                 if do_markers & (body.name != 'Sol'):
                     ax.plot(x[1,0], x[1,1], x[1,2], 'ow')
