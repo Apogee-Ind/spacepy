@@ -432,7 +432,8 @@ def create_LEO(h_p=400.0, h_a=401.0, i=0.0, w=0.0, lan=0.0, nu=0.0):
     return spacecraft
 
 
-from .wrappers import append_ssb_state
+import spacepy.wrappers as wrappers
+import spacepy.orbits as orb
 class System:
     bodytype = 'system'
 
@@ -441,8 +442,9 @@ class System:
         Create a new System instance.
 
         Args:
-        epoch       | dtype: str                            | Start epoch, formatted as 'YYYY MMM DD HH:MM:SS'
-        *bodies     | dtype: spacepy.objects.SpaceObject    | Bodies to include in the simulation. Must be an instance of subclasses Sol, Planet, Moon, SmallBody, or SpaceCraft
+        `epoch`       | dtype: `str`                            | Start epoch, formatted as 'YYYY MMM DD HH:MM:SS'
+        `*bodies`     | dtype: `spacepy.objects.SpaceObject`    | Bodies to include in the simulation. Must be an instance of subclasses `Sol`, `Planet`, `Moon`, `SmallBody`, or `SpaceCraft`
+
         """
         self.contents = {
             'star':{},
@@ -451,17 +453,22 @@ class System:
             'moon':{},
             'spacecraft':{}
         }
+        self.ids = []
         for body in bodies:
             self.contents[body.bodytype][body.id] = body
+            self.ids.append(body.id)
         self.epoch = epoch
         self.et_start = spice.str2et(epoch)
+        self.main = bodies[0]
     
     def add_body(self, body: SpaceObject):
         self.contents[body.bodytype][body.id] = body
+        self.ids.append(body.id)
     
     def remove_body(self, body: SpaceObject):
         try:
             removed = self.contents[body.type].pop(body.id)
+            self.ids.remove(body.id)
         except KeyError:
             print(f'System already does not contain {body.name}')
 
@@ -476,11 +483,13 @@ class System:
 
         Args:
         stop            dtype: str      | Simulation stop time, formatted as 'YYYY MMM DD HH:MM:SS'
-        step            dtype: float    | Desired interval between subsequent values in the state vector, in seconds  
+        step            dtype: float    | Desired interval between subsequent values in the state vector. Unit: s  
         include_moons   dtype: bool     | Whether to include moons contained in System in the simulation. Defaults to True if not specified.
         frame           dtype: str      | Reference frame in which to express output state vectors. Defaults to 'ECLIPJ2000' if not specified.
+
+        Note that ephemerides must be loaded using spacepy.data.bodydata.load() for each body in System before any vectors can be generated. If spiceypy cannot find the required ephemerides, it will throw an error.
         """
-        assert (10 in self.contents['star']), 'System must contain the Sun in order to use coordinates centered on the Solar System Barycenter.'
+        assert (10 in self.ids), 'System must contain the Sun in order to use coordinates centered on the Solar System Barycenter.'
         self.epoch_end = stop
         self.et_end = spice.str2et(stop)
         self.step_time = step
@@ -492,4 +501,89 @@ class System:
         for bodytype, bodies in self.contents.items():
             if bodies:
                 for bid, body in bodies.items():
-                    append_ssb_state(body, t_iterable, frame)
+                    wrappers.append_ssb_state(body, t_iterable, frame)
+    
+    def _gen_relative_vectors(self, stop, step, obs_id=10, include_moons=True, frame='ECLIPJ2000'):
+        """
+        Generate state vectors for all bodies in System, relative to a given object ID and between the defined times.
+        """
+        assert (obs_id in self.ids), 'System must contain the body to which vectors are relative.'
+        self.epoch_end = stop
+        self.et_end = spice.str2et(stop)
+        self.step_time = step
+
+        self._add_state_to_all(obs_id, frame, self.epoch, step)
+
+        t_iterable = np.arange(self.et_start, self.et_end, step)
+
+        for bodytype, bodies in self.contents.items():
+            if bodies:
+                for bid, body in bodies.items():
+                    wrappers.append_state(body, obs_id, t_iterable, frame)
+    
+    def porkchop(self, dep: SpaceObject, arr: SpaceObject, min_tof, max_tof, stop, step, plot=True, **solver_options):
+        """
+        Create a 'porkchop' plot illustrating possible transfers between two bodies at a range of times.
+        """
+        # add bodies to system if not already in system
+        if dep not in self.contents[dep.bodytype]:
+            self.add_body(dep)
+        if arr not in self.contents[arr.bodytype]:
+            self.add_body(arr)
+        
+        main_id = self.main.id
+        # generate state vectors relative to main body
+        et_stop = spice.str2et(stop)
+        et_stop = et_stop + max_tof
+        stop = spice.timout(et_stop, 'YYYY MON DD HR:MN:SC ::TDB')
+        self._gen_relative_vectors(stop, step, obs_id=main_id)
+
+        # t values in the body state vectors represent departure times
+        tof_array = np.arange(min_tof, max_tof, step)
+        ntof = np.shape(tof_array)[0]
+        t_dep_array = self.contents[dep.bodytype][dep.id].state[main_id]['t'][1:]
+        nt_dep = np.shape(t_dep_array)[0]
+        iis = np.arange(1, nt_dep+1)
+        n_counter = iis[::10]
+        print('_'*int(np.shape(n_counter)[0]))
+        # initialize arrival, departure velocities
+        vinf_dep = np.zeros((nt_dep, ntof, 3))
+        vinf_arr = np.zeros((nt_dep, ntof, 3))
+
+        # loop over departure times
+        for t_dep, ii in zip(t_dep_array, iis):
+            r0 = self.contents[dep.bodytype][dep.id].state[main_id]['state'][ii,:3]
+            v0_body = self.contents[dep.bodytype][dep.id].state[main_id]['state'][ii,3:]
+            #print(r0)
+            #print(t_dep)
+            for tof, jj in zip(tof_array, range(ntof)):
+                t_arr = t_dep + tof
+                ii_arr = np.where((t_dep - t_arr) < step)
+                r1 = self.contents[arr.bodytype][arr.id].state[main_id]['state'][ii_arr[0][0]+1,:3]
+                v1_body = self.contents[arr.bodytype][arr.id].state[main_id]['state'][ii_arr[0][0]+1,3:]
+                #print(r1)
+                v0, v1 = orb.battin_method(r0, r1, tof, self.main.gm)
+                vinf_dep[ii,jj,:] = v0 - v0_body
+                vinf_arr[ii,jj,:] = v1 - v1_body
+            if ii in n_counter:
+                print('#', end='')
+        v_dep_mag = np.linalg.norm(vinf_dep, axis=2)
+        v_arr_mag = np.linalg.norm(vinf_arr, axis=2)
+        # plot
+        if plot==True:
+            self.porkchop = plt.figure()
+            ax = self.porkchop.add_subplot(111)
+            ax.contour(t_dep_array, tof_array/86400, v_dep_mag.T)
+            ax.contour(t_dep_array, tof_array/86400, v_arr_mag.T)
+            ax.set_xlabel('Departure time, seconds past J2000')
+            ax.set_ylabel('Time of flight, days')
+            plt.suptitle(f'Porkchop plot of transfers between {dep.name} and {arr.name}')
+            plt.title(f'{self.epoch} to {self.epoch_end}')
+            plt.show()
+            
+
+        
+
+        
+
+        
