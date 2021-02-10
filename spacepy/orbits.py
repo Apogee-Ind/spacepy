@@ -23,9 +23,24 @@ def v_circular(Body: Sol, altitude):
 def vis_viva(Body: Sol, r, a):
     return np.sqrt(Body.gm * (2/r - 1/a))
 
+def hohmann_dv(Body: Sol, r1, r2):
+    vc1 = np.sqrt(Body.gm/r1)
+    a = (r1 + r2)/2
+    vdep = vis_viva(Body, r1, a)
 
+    vc2 = np.sqrt(Body.gm/r2)
+    varr = vis_viva(Body, r2, a)
+    return (vdep - vc1, varr - vc2) 
 
-
+def capture_dv(Body: Sol, vinf, rp, e, capture=True):
+    vesc = np.sqrt((2*Body.gm)/rp)
+    vp = np.sqrt(vesc**2 + vinf**2)
+    a = rp/(1 - e)
+    v2 = vis_viva(Body, rp, a)
+    if capture:
+        return v2 - vp
+    else:
+        return vp - v2
 
 #@jit(nopython=True)
 def battin_method(r0: np.ndarray, r1: np.ndarray, t, gm, method=1, tol=1e-6):

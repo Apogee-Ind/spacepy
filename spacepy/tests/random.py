@@ -1,59 +1,63 @@
 import numpy as np
 
-from ..objects import Planet, SmallBody, SpaceCraft, Moon
+from ..objects import Sol, Planet, SmallBody, SpaceCraft, Moon
 import spacepy.data.bodydata as bodydata
 import spacepy.data.constants as const
+import spacepy.orbits as orb
 
 def ss_dv():
     earth = Planet()
-    v_circ = np.sqrt(earth.gm/(earth.r + 350)) # km/s
-
-    ss_Isp = 380.0
-    m_payload = 100e3
-    m_dry = 120e3 + m_payload
-    m_fuel = 1200e3
-    m_wet = m_dry + m_fuel
-
-    max_dv = ss_Isp * const.g_0 * np.log(m_wet/m_dry) # m/s
-
-    v_p = v_circ + max_dv/1000 # km/s
-    vesc = np.sqrt((2*earth.gm)/(earth.r + 350.0))
-    c3 = v_p**2 - vesc**2
-    max_vinf = np.sqrt(c3)
-
-    target_vinf = 6.6 # km/s
-    vp_required = np.sqrt(vesc**2 + target_vinf**2)
-    dv_required = np.abs(vp_required - v_circ)
-    dv_leftover = max_dv/1000 - dv_required
-
-    m_after = m_wet /  np.exp(dv_required*1000 / (ss_Isp*const.g_0))
-
-    #print(f'Fully loaded & fueled starship has {np.round(max_dv/1000,3)} km/s delta-V')
-    print(f'Starship max C3: {c3}, max v_inf: {max_vinf}')
-    print(f'Target V_inf of {target_vinf} km/s: {np.round(dv_leftover,3)} km/s delta-V leftover, total mass {np.round(m_after/1000)} mT after departure.')
-
+    mars = Planet('Mars')
     ceres = SmallBody()
-    vesc_ceres = np.sqrt((2*ceres.gm)/(ceres.r + 200.0))
-    vinf_ceres = 6.3
-    vp_ceres = np.sqrt(vesc_ceres**2 + vinf_ceres**2)
-    v_circ_ceres = np.sqrt(ceres.gm/(ceres.r + 200.0))
-    vp_min = vp_ceres - dv_leftover
-    print(f'ceres hyperbolic periapsis velocity: {np.round(vp_ceres,3)} and circular orbit velocity at same altitude: {np.round(v_circ_ceres,3)}')
-    print(f'minimum v_p after expending all fuel: {np.round(vp_min,3)} km/s')
-    a_final = ceres.gm*(ceres.r + 200.0) / (2*ceres.gm - (ceres.r + 200.00)*vp_min**2)
-    #print(f'final orbit semi-major axis after expending all fuel decelerating at Ceres: {a_final} km')
-    """ ceres = SmallBody('Ceres')
-    v_ceres = np.sqrt(ceres.gm/(ceres.r + 110.0))
-    omega_c = (2*np.pi)/ceres.sday
-    v_rot = ceres.r * omega_c
-    print(f'200 km circular low Ceres orbit velocity: {np.round(v_ceres,3)}')
-    v_ascent = v_ceres #- v_rot
-    v_descent = v_ascent * 1.25
-    print(f'Landing delta-V, assuming in direction of Ceres rotation and 25% margin for hovering: {np.round(v_descent,3)}')
-    print(f'Ascent delta-V, assuming launching at equator in direction of rotation, to 200 km orbit: {np.round(v_ascent,3)}')
+    sun = Sol()
 
-    moon = Moon()
-    v_moon = np.sqrt(moon.gm/(moon.r + 110.0))
-    v_d_moon = v_moon * 1.25
-    print(f'Moon landing delta-V: {np.round(v_d_moon,3)} km/s, ascent delta-V: {np.round(v_moon,3)} km/s')
-    """
+    r_LEO = earth.r + 350.0
+    r_e = const.au
+    r_m = 230269198.0
+    r_c = 413964389.0
+
+    e_m_dep, e_m_arr = orb.hohmann_dv(sun, r_e, r_m)
+    e_c_dep, e_c_arr = orb.hohmann_dv(sun, r_e, r_c)
+    m_c_dep, m_c_arr = orb.hohmann_dv(sun, r_m, r_c)
+    e_m_dv = orb.capture_dv(earth, e_m_dep, r_LEO, 0.0, capture=False)
+    e_c_dv = orb.capture_dv(earth, e_c_dep, r_LEO, 0.0, capture=False)
+    m_c_dv = orb.capture_dv(mars, m_c_dep, 350+mars.r, 0.0, capture=False)
+
+    print(f'dv to leave: earth-mars {e_m_dv} km/s, earth-ceres {e_c_dv} km/s, mars-ceres {m_c_dv} km/s')
+    print('note: leaving from 350 km altitude circular orbit at earth, and from 350 km circular orbit at mars')
+
+    e_m_cap = orb.capture_dv(mars, e_m_arr, 350+mars.r, 0.0)
+    e_c_cap = orb.capture_dv(ceres, e_c_arr, 200+ceres.r, 0.95)
+    m_c_cap = orb.capture_dv(ceres, m_c_arr, 200+ceres.r, 0.95)
+
+    print(f'dv to capture: earth-mars {e_m_cap} km/s, earth-ceres {e_c_cap} km/s, mars-ceres {m_c_cap} km/s')
+    print('note: Mars capture is to 350 km altitude circular orbit, ceres capture is to 200 km orbit with e=0.95')
+
+def ceres_landing():
+    ceres = SmallBody()
+    sun = Sol()
+
+    r_parking = ceres.r + 200.0
+    v_park = orb.v_circular(ceres, 200.0)
+    omega_ceres = (2*np.pi)/ceres.sday
+    v_rot = omega_ceres*ceres.r
+
+    v_ascend = v_park
+    v_descend = v_ascend * 1.15
+    v_hover = v_descend - v_ascend
+
+    v_ascend_min = v_ascend - v_rot
+    v_descend_min = v_ascend_min * 1.15
+    v_hover_min = v_descend_min - v_ascend_min
+
+    lander = SpaceCraft('lm', mass=3000)
+    lander.add_thruster(16000, 310)
+    lander.add_fuel(2353.0)
+    lander_dv = lander.get_max_dV()
+
+    dv_required = (v_ascend + v_descend) * 1.10
+    n_landings = lander_dv/dv_required
+
+    print(f'ceres dV to land: {v_descend} and take off: {v_ascend} to/from 200 km parking orbit\nassuming 15% margin: {v_hover} for hovering')
+    print(f'absolute minimum dv to land (using ceres rotation): {v_descend_min} and take off: {v_ascend_min}')
+    print(f'apollo ascent module with full fuel has {lander_dv} km/s dV, sufficient for {n_landings} landings')

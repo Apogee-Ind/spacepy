@@ -24,18 +24,18 @@ def main():
     #Psyche = SmallBody('Psyche')
 
     bodydata.load()
-    epoch = '2044 JAN 01 00:00:00'
-    epoch_end = '2045 JAN 01 00:00:00'
-    step = 3*86400
+    epoch = '2045 DEC 21 00:00:00'
+    epoch_end = '2046 SEP 17 00:00:00'
+    step = 2*86400
 
     sys = System(epoch, Sun, Earth, Mars, Ceres)
-    sys.porkchop(Earth, Ceres, 150*86400, 200*86400, epoch_end, step)
+    #sys.porkchop(Earth, Ceres, 150*86400, 200*86400, epoch_end, step)
     #print(sys.contents)
-    #sys._gen_ssb_vectors(epoch_end, step)
-    #sys._gen_relative_vectors(epoch_end, step)
+    sys._gen_ssb_vectors(epoch_end, step)
+    sys._gen_relative_vectors(epoch_end, step)
     #print(np.shape(sys.contents['major_planet'][3].state[0]['state']))
     #print(np.shape(sys.contents['star'][10].state[0]['state']))
-    #sim.plot_system(sys, 10, 'ECLIPJ2000', do_markers=True)
+    sim.plot_system(sys, 10, 'ECLIPJ2000', do_markers=True)
     #print(sys.nt)
     
 

@@ -378,7 +378,7 @@ class SpaceCraft(SpaceObject):
 
     def get_max_dV(self):
         assert hasattr(self, 'thruster'), 'SpaceCraft instance must have a thruster to calculate maximum delta-V.'
-        self.dV = self.thruster['Isp'] * const.g_0 * np.log(self.m/(self.m - self.m_fuel))
+        self.dV = (self.thruster['Isp'] * const.g_0 * np.log(self.m/(self.m - self.m_fuel)))/1000
         return self.dV
 
     def add_fuel(self, m_fuel):
